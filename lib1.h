@@ -27,5 +27,6 @@ typedef struct{
 
 void init_district(const char* );
 int check_per(const char* ,int ,int ,int );
+void log_command(const char* ,int ,const char* ,const char* );
 
 #endif

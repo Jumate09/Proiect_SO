@@ -43,7 +43,7 @@ int main(int argc, char* argv[]){
 
     init_district(distr_id);
     printf("\n%d\n",check_per("district1/logged_district",1,1,1));
-
+    log_command(distr_id,user,name,command);
 }
 
 

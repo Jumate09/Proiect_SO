@@ -108,5 +108,28 @@ int check_per(const char* filepath,int role,int read,int write){
     return 1;
 }
 
+void log_command(const char* distr_id,int role,const char* name,const char* command){
+    char filepath[256]="";
+    strcpy(filepath,distr_id);
+    strcat(filepath,"/");
+    strcat(filepath,"logged_district");
+    int fp=open(filepath,O_WRONLY|O_APPEND);
+    if(fp==-1){
+        fprintf(stderr,"eroare nu s-au putut deschide loguriile");
+        return;
+    }
+    char entry[512];
+    time_t stamp=time(NULL);
+    char time_str[64];
+    strcpy(time_str,ctime(&stamp));
+    time_str[strcspn(time_str,"\n")]=0;
+    char role_str[]="INSPECTOR";
+    if(role){
+        strcpy(role_str,"MANAGER");
+    }
+    int len=snprintf(entry, sizeof(entry),"%s %s %s %s\n",time_str,role_str,name,command);
+    write(fp,entry,len);
+    close(fp);
+}
 
 
