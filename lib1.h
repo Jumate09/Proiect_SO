@@ -3,7 +3,7 @@
 
 #include <time.h>
 
-#define MAX_NUME 50
+#define MAX_NUME 24
 #define MAX_ISS 32
 #define MAX_DESC 256
 
@@ -28,5 +28,6 @@ typedef struct{
 void init_district(const char* );
 int check_per(const char* ,int ,int ,int );
 void log_command(const char* ,int ,const char* ,const char* );
+void add_report(const char* ,const char* ,int ,float , float , const char* , int , const char* );
 
 #endif

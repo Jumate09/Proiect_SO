@@ -97,11 +97,11 @@ int check_per(const char* filepath,int role,int read,int write){
             writeable=1;
         }
     }
-    if(read!=readable){
+    if(read==1&&readable==0){
         fprintf(stderr,"per anulata, rolul nu are drept de scriere %s\n",filepath);
         return 0;
     }
-    if(write!=writeable){
+    if(write==1&&writeable==0){
         fprintf(stderr,"per anulata, rolul nu are drept de citire %s\n",filepath);
         return 0;
     }
@@ -132,4 +132,33 @@ void log_command(const char* distr_id,int role,const char* name,const char* comm
     close(fp);
 }
 
+void add_report(const char* distr_id,const char* nume,int role,float lat, float lon, const char* issue, int severity, const char* desc){
+    char filepath[256];
+    snprintf(filepath,sizeof(filepath),"%s/reports.dat",distr_id);
+    if(!check_per(filepath,role,0,1)){
+        fprintf(stderr,"eroare nu ai permisiune pentru a adauga un raport");
+        return;
+    }
+    int fp=open(filepath,O_WRONLY|O_APPEND|O_CREAT,REPORT_PER);
+    if(fp==-1){
+        fprintf(stderr,"eroare nu s-a reusit deschiderea fisierului %s",filepath);
+        return;
+    }
+    district_h rep;
+    rep.lat=lat;
+    rep.lon=lon;
+    rep.severity=severity;
+    rep.stamp=time(NULL);
+    strncpy(rep.insp_name,nume,MAX_NUME-1);
+    strncpy(rep.issue,issue,MAX_ISS-1);
+    strncpy(rep.description,desc,MAX_DESC-1);
+
+    struct stat st;
+    fstat(fp,&st);
+    rep.report_id=st.st_size/sizeof(district_h)+1;//calculeza al catale raport este in functie de cate exista deja in fisier
+    if(write(fp,&rep,sizeof(district_h))!=sizeof(district_h)){
+        fprintf(stderr,"eroare nu s-a scris tot raportul");
+    }
+    close(fp);
+}
 

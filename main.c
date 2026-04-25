@@ -41,9 +41,10 @@ int main(int argc, char* argv[]){
     strcpy(distr_id,argv[6]);
 
 
-    init_district(distr_id);
-    printf("\n%d\n",check_per("district1/logged_district",1,1,1));
-    log_command(distr_id,user,name,command);
+    //init_district(distr_id);
+    //printf("\n%d\n",check_per("district1/logged_district",1,1,1));
+    //log_command(distr_id,user,name,command);
+    add_report(distr_id,name,user,3.14,8.967,"road",3,"s-a spart drumul si o conduca de gaz impreuna cu el si au teait pana la adanci batraneti");
 }
 
 
