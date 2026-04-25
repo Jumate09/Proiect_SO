@@ -38,7 +38,11 @@ int main(int argc, char* argv[]){
         }
     }
     strcpy(command,argv[5]);
-    init_district("DOWNTOWN");
+    strcpy(distr_id,argv[6]);
+
+
+    init_district(distr_id);
+    printf("\n%d\n",check_per("district1/logged_district",1,1,1));
 
 }
 

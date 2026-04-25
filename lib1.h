@@ -18,12 +18,14 @@ typedef struct{
     char description[MAX_DESC];
 }district_h;
 
-void init_district(const char* );
+
 
 #define DIR_PER 0750//rwxr-x---
 #define REPORT_PER 0664//rw-rw-r--
 #define CONFIG_PER 0640//rw-r-----
 #define LOG_PER 0644//rw-r--r--
 
+void init_district(const char* );
+int check_per(const char* ,int ,int ,int );
 
 #endif

@@ -60,5 +60,53 @@ void init_district(const char* distr_id){
     }
 }
 
+int check_per(const char* filepath,int role,int read,int write){
+    struct stat st;
+
+    if(stat(filepath,&st)==-1){
+        fprintf(stderr,"eroare nu s-a gasit fisierul pentru verificare permisiune");
+        return 0;
+    }
+    int readable;
+    int writeable;
+    if(role==0){//daca e insp
+        if((st.st_mode & S_IRGRP)==0){
+            readable=0;
+        }
+        else{
+            readable=1;
+        }
+        if((st.st_mode & S_IWGRP)==0){
+            writeable=0;
+        }
+        else{
+            writeable=1;
+        }
+    }
+    if(role==1){//daca e man
+        if((st.st_mode & S_IRUSR)==0){
+            readable=0;
+        }
+        else{
+            readable=1;
+        }
+        if((st.st_mode & S_IWUSR)==0){
+            writeable=0;
+        }
+        else{
+            writeable=1;
+        }
+    }
+    if(read!=readable){
+        fprintf(stderr,"per anulata, rolul nu are drept de scriere %s\n",filepath);
+        return 0;
+    }
+    if(write!=writeable){
+        fprintf(stderr,"per anulata, rolul nu are drept de citire %s\n",filepath);
+        return 0;
+    }
+    return 1;
+}
+
 
 
