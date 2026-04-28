@@ -13,38 +13,24 @@ int main(int argc, char* argv[]){
         fprintf(stderr, "eroare argumente linie de comanda");
         exit(-1);
     }
-    for(int i=1;i<5;i++)
-    {
-        if(strcmp(argv[i],"--role")==0){
-            if(strcmp(argv[i+1],"manager")==0){
-                user=1;
-                i++;
-                continue;
-            }
-            else if(strcmp(argv[i+1],"inspector")==0){
-                user=0;
-                i++;
-                continue;
-            }
-            else{
-                fprintf(stderr,"eroare rol, se accepta doara inspector sau manager");
-                exit(-1);
-            }
-        }
-        else if(strcmp(argv[i],"--user")==0){
-            strcpy(name,argv[i+1]);
-            i++;
-            continue;
-        }
+    if(strcmp(argv[2],"manager")==0){
+        user=1;
     }
+    else if(strcmp(argv[2],"inspector")==0){
+        user=0;
+    }
+    strcpy(name,argv[4]);
     strcpy(command,argv[5]);
     strcpy(distr_id,argv[6]);
 
+    
 
-    //init_district(distr_id);
+    init_district(distr_id);
     //printf("\n%d\n",check_per("district1/logged_district",1,1,1));
-    //log_command(distr_id,user,name,command);
-    add_report(distr_id,name,user,3.14,8.967,"road",3,"s-a spart drumul si o conduca de gaz impreuna cu el si au teait pana la adanci batraneti");
+    log_command(distr_id,user,name,command);
+    //add_report(distr_id,name,user,3.14,8.967,"road",9,"s-a spart batraneti");
+    //list_reports(distr_id,user);
+    view_report(distr_id,1,3);
 }
 
 

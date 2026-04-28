@@ -29,5 +29,9 @@ void init_district(const char* );
 int check_per(const char* ,int ,int ,int );
 void log_command(const char* ,int ,const char* ,const char* );
 void add_report(const char* ,const char* ,int ,float , float , const char* , int , const char* );
+void creare_simblink(const char* );
+void list_reports(const char* , int );
+void view_report(const char* , int , int );
+
 
 #endif

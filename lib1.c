@@ -12,6 +12,30 @@
 
 #define ESCALATION_TRESHOLD 2
 
+void creare_simblink(const char* distr_id) {
+    char target[256];
+    char link_name[256];
+
+    snprintf(target,sizeof(target),"%s/reports.dat",distr_id);
+    snprintf(link_name,sizeof(link_name),"active_reports-%s",distr_id);
+
+    if(symlink(target, link_name)==-1) {
+        if(errno==EEXIST) {
+            // Dacă link-ul există deja, îl ștergem și îl recreăm
+            unlink(link_name);
+            if(symlink(target, link_name) == -1) {
+                fprintf(stderr,"Eroare la actualizarae simblink");
+            }
+        }
+        else{
+            fprintf(stderr,"Eroare la creare simblink");
+        }
+    }
+    else{
+        printf("Simblink creat:%s->%s\n",link_name,target);
+    }
+}
+
 void init_district(const char* distr_id){
     struct stat buf;
     if(stat(distr_id,&buf)==-1){
@@ -20,10 +44,7 @@ void init_district(const char* distr_id){
         printf("s-a creat districtul %s",distr_id);
     }
     char filepath[256];
-    strcpy(filepath,"");
-    strcat(filepath,distr_id);
-    strcat(filepath,"/");
-    strcat(filepath,"reports.dat");
+    snprintf(filepath,sizeof(filepath),"%s/reports.dat",distr_id);
     int fp;
     if(stat(filepath,&buf)==-1){
         fp=open(filepath,O_CREAT|O_RDWR,REPORT_PER);
@@ -32,10 +53,7 @@ void init_district(const char* distr_id){
             close(fp);
         }
     }
-    strcpy(filepath,"");
-    strcat(filepath,distr_id);
-    strcat(filepath,"/");
-    strcat(filepath,"district.cfg");
+    snprintf(filepath,sizeof(filepath),"%s/district.cfg",distr_id);
     if(stat(filepath,&buf)==-1){
         fp=open(filepath,O_CREAT|O_RDWR,CONFIG_PER);
         if(fp!=-1){
@@ -47,10 +65,7 @@ void init_district(const char* distr_id){
         }
     }
 
-    strcpy(filepath,"");
-    strcat(filepath,distr_id);
-    strcat(filepath,"/");
-    strcat(filepath,"logged_district");
+    snprintf(filepath,sizeof(filepath),"%s/logged_district",distr_id);
     if(stat(filepath,&buf)==-1){
         fp=open(filepath,O_CREAT|O_RDWR,LOG_PER);
         if(fp!=-1){
@@ -58,6 +73,7 @@ void init_district(const char* distr_id){
             close(fp);
         }
     }
+    creare_simblink(distr_id);
 }
 
 int check_per(const char* filepath,int role,int read,int write){
@@ -110,9 +126,8 @@ int check_per(const char* filepath,int role,int read,int write){
 
 void log_command(const char* distr_id,int role,const char* name,const char* command){
     char filepath[256]="";
-    strcpy(filepath,distr_id);
-    strcat(filepath,"/");
-    strcat(filepath,"logged_district");
+    snprintf(filepath,sizeof(filepath),"%s/logged_district",distr_id);
+
     int fp=open(filepath,O_WRONLY|O_APPEND);
     if(fp==-1){
         fprintf(stderr,"eroare nu s-au putut deschide loguriile");
@@ -161,4 +176,78 @@ void add_report(const char* distr_id,const char* nume,int role,float lat, float 
     }
     close(fp);
 }
-
+void mode_to_string(mode_t mode, char *str) {
+    sprintf(str,"---------");
+    if(mode & S_IRUSR){
+        str[0] = 'r';
+    }
+    if(mode & S_IWUSR){
+        str[1] = 'w';
+    }
+    if(mode & S_IXUSR){
+        str[2] = 'x';
+    }
+    if(mode & S_IRGRP){
+        str[3] = 'r';
+    }
+    if(mode & S_IWGRP){
+        str[4] = 'w';
+    }
+    if(mode & S_IXGRP){
+        str[5] = 'x';
+    }
+    if(mode & S_IROTH){
+        str[6] = 'r';
+    }
+    if(mode & S_IWOTH){
+        str[7] = 'w';
+    }
+    if(mode & S_IXOTH){
+        str[8] = 'x';
+    }
+}
+void list_reports(const char* distr_id, int role){
+    char l_path[256];
+    snprintf(l_path,sizeof(l_path),"active_reports-%s",distr_id);
+    struct stat st_l, st_t;
+    if(lstat(l_path,&st_l)==-1){
+        return;
+    }
+    if(stat(l_path,&st_t)==-1){
+        printf("Warning dangling link\n");
+        return;
+    }
+    char p_s[11];
+    mode_to_string(st_t.st_mode, p_s);
+    printf("Permisiuni: %s | Marime: %ld | Modificat: %s", p_s, st_t.st_size, ctime(&st_t.st_mtime));
+    int fd=open(l_path, O_RDONLY);
+    if(fd==-1) return;
+    district_h r;
+    while(read(fd,&r,sizeof(district_h))==sizeof(district_h)){
+        printf("ID: %d | User: %s | Issue: %s | Severity: %d | Timestsmp: %s", r.report_id, r.insp_name,  r.issue, r.severity, ctime(&r.stamp));
+    }
+    close(fd);
+}
+void view_report(const char* distr_id, int role, int target_id){
+    char l_path[256];
+    snprintf(l_path,sizeof(l_path),"active_reports-%s",distr_id);
+    if(!check_per(l_path,role,1,0)){
+        return;
+    }
+    int fd=open(l_path,O_RDONLY);
+    if(fd==-1){
+        fprintf(stderr,"eroare deschidere fisier");
+        return;
+    }
+    struct stat st;
+    fstat(fd,&st);
+    district_h r;
+    while(read(fd,&r,sizeof(district_h))==sizeof(district_h)){
+        if(r.report_id==target_id){
+            printf("ID: %d | User: %s | Lat: %.4f | Lon: %.4f | Issue: %s | Severity: %d | Timestamp: %s", r.report_id, r.insp_name, r.lat, r.lon, r.issue, r.severity, ctime(&r.stamp));
+            printf("Descriere: %s\n", r.description);
+            break;
+        }
+    }
+    close(fd);
+}
