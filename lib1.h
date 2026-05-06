@@ -32,6 +32,6 @@ void add_report(const char* ,const char* ,int ,float , float , const char* , int
 void creare_simblink(const char* );
 void list_reports(const char* , int );
 void view_report(const char* , int , int );
-
+void remove_report(const char* , int , int );
 
 #endif

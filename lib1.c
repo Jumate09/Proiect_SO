@@ -219,13 +219,14 @@ void list_reports(const char* distr_id, int role){
     }
     char p_s[11];
     mode_to_string(st_t.st_mode, p_s);
-    printf("Permisiuni: %s | Marime: %ld | Modificat: %s", p_s, st_t.st_size, ctime(&st_t.st_mtime));
+    printf("\nPermisiuni: %s | Marime: %ld | Modificat: %s", p_s, st_t.st_size, ctime(&st_t.st_mtime));
     int fd=open(l_path, O_RDONLY);
     if(fd==-1) return;
     district_h r;
     while(read(fd,&r,sizeof(district_h))==sizeof(district_h)){
         printf("ID: %d | User: %s | Issue: %s | Severity: %d | Timestsmp: %s", r.report_id, r.insp_name,  r.issue, r.severity, ctime(&r.stamp));
     }
+    printf("\n");
     close(fd);
 }
 void view_report(const char* distr_id, int role, int target_id){
@@ -242,12 +243,53 @@ void view_report(const char* distr_id, int role, int target_id){
     struct stat st;
     fstat(fd,&st);
     district_h r;
+
     while(read(fd,&r,sizeof(district_h))==sizeof(district_h)){
         if(r.report_id==target_id){
-            printf("ID: %d | User: %s | Lat: %.4f | Lon: %.4f | Issue: %s | Severity: %d | Timestamp: %s", r.report_id, r.insp_name, r.lat, r.lon, r.issue, r.severity, ctime(&r.stamp));
+            printf("\nID: %d | User: %s | Lat: %.4f | Lon: %.4f | Issue: %s | Severity: %d | Timestamp: %s", r.report_id, r.insp_name, r.lat, r.lon, r.issue, r.severity, ctime(&r.stamp));
             printf("Descriere: %s\n", r.description);
-            break;
+            close(fd);
+            return;
         }
     }
+    printf("nu s-a gasit raportul cu id-ul %d",target_id);
+    close(fd);
+}
+void remove_report(const char* distr_id, int role, int target_id){
+    char l_path[256];
+    snprintf(l_path,sizeof(l_path),"active_reports-%s",distr_id);
+    if(!check_per(l_path,role,1,1)){
+        return;
+    }
+    if(role==0){
+        fprintf(stderr,"eroare doar managerii pot sterge raporturi");
+        return;
+    }
+    int fd=open(l_path,O_RDWR);
+    if(fd==-1){
+        fprintf(stderr,"eroare deschidere fisier");
+        return;
+    }
+    struct stat st;
+    fstat(fd,&st);
+    int offset=(target_id-1)*sizeof(district_h);
+    if(target_id<1||target_id>st.st_size){
+        fprintf(stderr,"eroare ID raport invalid");
+        close(fd);
+        return;
+    }
+    district_h r;
+    int r_pos=offset+sizeof(district_h);
+    int w_pos=offset;
+    while(r_pos<st.st_size){
+        lseek(fd,r_pos,SEEK_SET);
+        if(read(fd,&r,sizeof(district_h))!=sizeof(district_h)) break;
+        r.report_id--;
+        lseek(fd,w_pos,SEEK_SET);
+        write(fd,&r,sizeof(district_h));
+        r_pos+=sizeof(district_h);
+        w_pos+=sizeof(district_h);
+    }
+    ftruncate(fd,st.st_size-sizeof(district_h));
     close(fd);
 }

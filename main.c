@@ -28,9 +28,11 @@ int main(int argc, char* argv[]){
     init_district(distr_id);
     //printf("\n%d\n",check_per("district1/logged_district",1,1,1));
     log_command(distr_id,user,name,command);
-    //add_report(distr_id,name,user,3.14,8.967,"road",9,"s-a spart batraneti");
+    //add_report(distr_id,name,user,3.14,8.967,"road",5,"s-a spart batraneti");
     //list_reports(distr_id,user);
-    view_report(distr_id,1,3);
+    //view_report(distr_id,user,3);
+    //remove_report(distr_id,1,3);
+    list_reports(distr_id,user);
 }
 
 
