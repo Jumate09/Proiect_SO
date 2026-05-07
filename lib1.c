@@ -9,6 +9,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <time.h>
+#include <stdlib.h>
 
 #define ESCALATION_TRESHOLD 2
 
@@ -291,5 +293,136 @@ void remove_report(const char* distr_id, int role, int target_id){
         w_pos+=sizeof(district_h);
     }
     ftruncate(fd,st.st_size-sizeof(district_h));
+    close(fd);
+}
+
+void update_threshold(const char* distr_id, int role, int new_val){
+    if(role!=1){
+        fprintf(stderr,"eroare doar managerul poate actualiza threshold");
+        return;
+    }
+    char path[256];
+    snprintf(path,sizeof(path),"%s/district.cfg",distr_id);
+    struct stat st;
+    if(stat(path,&st)==-1){
+        fprintf(stderr,"eroare accesare fisier configurare");
+        return;
+    }
+    if((st.st_mode & 0777)!=CONFIG_PER){
+        fprintf(stderr,"eroare permisiuni corupte pt cfg");
+        return;
+    }
+    int fd=open(path,O_WRONLY|O_TRUNC);
+    if(fd==-1){
+        fprintf(stderr,"eroare deschidere fisier configurare");
+        return;
+    }
+    char buf[16];
+    int len=snprintf(buf,sizeof(buf),"%d\n",new_val);
+    if(write(fd,buf,len)!=len){
+        fprintf(stderr,"eroare scriere in fisier configurare");
+    }
+    close(fd);
+}
+int parse_condition(const char *input, char *field, char *op, char *value) {
+
+    if (input == NULL || field == NULL || op == NULL || value == NULL) {
+        fprintf(stderr,"eroare pointer transmis parse_cond NULL");
+        return -1; 
+    }
+    int parsed_items = sscanf(input, "%[^:]:%[^:]:%[^\n]", field, op, value);
+    if (parsed_items == 3) {
+        return 1;
+    }
+
+    return -1;
+}
+int compare_int(int field_val, const char *op, int target_val) {
+    if (strcmp(op, "==") == 0 || strcmp(op, "=") == 0) return field_val == target_val;
+    if (strcmp(op, "!=") == 0) return field_val != target_val;
+    if (strcmp(op, "<") == 0)  return field_val < target_val;
+    if (strcmp(op, "<=") == 0) return field_val <= target_val;
+    if (strcmp(op, ">") == 0)  return field_val > target_val;
+    if (strcmp(op, ">=") == 0) return field_val >= target_val;
+    return -1; // Operator invalid
+}
+int compare_float(float field_val, const char *op, float target_val) {
+    if (strcmp(op, "==") == 0 || strcmp(op, "=") == 0) return field_val == target_val;
+    if (strcmp(op, "!=") == 0) return field_val != target_val;
+    if (strcmp(op, "<") == 0)  return field_val < target_val;
+    if (strcmp(op, "<=") == 0) return field_val <= target_val;
+    if (strcmp(op, ">") == 0)  return field_val > target_val;
+    if (strcmp(op, ">=") == 0) return field_val >= target_val;
+    return -1; // Operator invalid
+}
+int compare_string(const char *field_val, const char *op, const char *target_val) {
+    if (strcmp(op, "==") == 0 || strcmp(op, "=") == 0) {
+        return strcmp(field_val, target_val) == 0;
+    }
+    if (strcmp(op, "!=") == 0) {
+        return strcmp(field_val, target_val) != 0;
+    }
+    return -1; // Operator invalid pentru string-uri
+}
+//returneaza -1 la erori 1 la match si 0 la unmatched
+int match_condition(district_h *r, const char *field, const char *op, const char *value) {
+    if (r == NULL || field == NULL || op == NULL || value == NULL) {
+        return -1;
+    }
+    if (strcmp(field, "report_id") == 0) {
+        return compare_int(r->report_id, op, atoi(value));
+
+    } else if (strcmp(field, "severity") == 0) {
+        return compare_int(r->severity, op, atoi(value));
+
+    } else if (strcmp(field, "lon") == 0) {
+        return compare_float(r->lon, op, atof(value));
+
+    } else if (strcmp(field, "lat") == 0) {
+        return compare_float(r->lat, op, atof(value));
+
+    } else if (strcmp(field, "stamp") == 0) {
+        long long target_time = atoll(value);
+        return compare_int((int)r->stamp, op, (int)target_time);
+
+    } else if (strcmp(field, "insp_name") == 0) {
+        return compare_string(r->insp_name, op, value);
+
+    } else if (strcmp(field, "issue") == 0) {
+        return compare_string(r->issue, op, value);
+
+    } else if (strcmp(field, "description") == 0) {
+        return compare_string(r->description, op, value);
+    }
+    return -1;
+}
+void filter_reports(const char* distr_id, int role, int cond_count, char** conditions){
+    char l_path[256];
+    snprintf(l_path,sizeof(l_path),"active_reports-%s",distr_id);
+    if(!check_per(l_path,role,1,0)){
+        fprintf(stderr,"eroare lipsa permisiuni citire");
+        return;
+    }
+    int fd=open(l_path,O_RDONLY);
+    if(fd==-1){
+        fprintf(stderr,"eroare deschidere fisier");
+        return;
+    }
+    district_h r;
+    while(read(fd,&r,sizeof(district_h))==sizeof(district_h)){
+        int match_all=1;
+        for(int i=0;i<cond_count;i++){
+            char field[32], op[4], val[256];
+            if(parse_condition(conditions[i],field,op,val)==1){
+                if(match_condition(&r,field,op,val)==0){
+                    match_all=0;
+                    break;
+                }
+            }
+        }
+        if(match_all==1){
+            printf("ID: %d | User: %s | Issue: %s | Severity: %d | Timestamp: %s\n", r.report_id, r.insp_name, r.issue, r.severity, ctime(&r.stamp));
+        }
+    }
     close(fd);
 }
