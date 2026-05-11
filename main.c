@@ -39,10 +39,8 @@ int main(int argc, char* argv[]){
     strcpy(command,argv[5]);
     strcpy(distr_id,argv[6]);
 
-    init_district(distr_id);
-    log_command(distr_id,user,name,command);
-
     if(strcmp(command,"--add")==0){
+        init_district(distr_id);
         float lat,lon;
         int severity;
         char issue[MAX_ISS],desc[MAX_DESC];
@@ -96,6 +94,10 @@ int main(int argc, char* argv[]){
             fprintf(stderr,"eroare lipsesc conditii pentru filter");
         }
     }
+    else if(strcmp(command,"--remove_district")==0){
+        remove_district(distr_id,user);
+    }
+    log_command(distr_id,user,name,command);
 
     return 0;
 }

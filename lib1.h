@@ -35,5 +35,6 @@ void view_report(const char* , int , int );
 void remove_report(const char* , int , int );
 void update_threshold(const char* , int , int );
 void filter_reports(const char* , int , int , char** );
+void remove_district(const char* , int );
 
 #endif

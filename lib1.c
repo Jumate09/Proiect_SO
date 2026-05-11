@@ -11,6 +11,7 @@
 #include <fcntl.h>
 #include <time.h>
 #include <stdlib.h>
+#include <sys/wait.h>
 
 #define ESCALATION_TRESHOLD 2
 
@@ -177,6 +178,40 @@ void add_report(const char* distr_id,const char* nume,int role,float lat, float 
         fprintf(stderr,"eroare nu s-a scris tot raportul");
     }
     close(fp);
+
+    //monitor
+
+    int monitor_pid=-1;
+    int pid_fd=open(".monitor_pid",O_RDONLY);
+    if(pid_fd!=-1){
+        char pid_buf[16]={0};
+        if(read(pid_fd,pid_buf,sizeof(pid_buf)-1)>0){
+            monitor_pid=atoi(pid_buf);
+        }
+        close(pid_fd);
+    }
+    char monitor_msg[256];
+    if(monitor_pid>0){
+        if(kill(monitor_pid,SIGUSR1)==0){
+            snprintf(monitor_msg,sizeof(monitor_msg),"s-a trimis semnal PID %d\n",monitor_pid);
+        }
+        else{
+            snprintf(monitor_msg,sizeof(monitor_msg),"semnal netrimis\n");
+        }
+    }
+    else{
+        snprintf(monitor_msg,sizeof(monitor_msg),"fisier pid negasit\n");
+    }
+    char log_path[256];
+    snprintf(log_path,sizeof(log_path),"%s/logged_district",distr_id);
+    int log_fd=open(log_path,O_WRONLY|O_APPEND);
+    if(log_fd!=-1){
+        write(log_fd,monitor_msg,strlen(monitor_msg));
+        close(log_fd);
+    }
+    else{
+        fprintf(stderr,"eroare deschidere logged_district pt monitor");
+    }
 }
 void mode_to_string(mode_t mode, char *str) {
     sprintf(str,"---------");
@@ -425,4 +460,27 @@ void filter_reports(const char* distr_id, int role, int cond_count, char** condi
         }
     }
     close(fd);
+}
+
+void remove_district(const char* distr_id, int role){
+    if(role!=1){
+        fprintf(stderr,"eroare doar managerul poate sterge districtul");
+        return;
+    }
+    char l_path[256];
+    snprintf(l_path,sizeof(l_path),"active_reports-%s",distr_id);
+    unlink(l_path);
+    pid_t pid=fork();
+    if(pid==-1){
+        fprintf(stderr,"eroare fork");
+        return;
+    }
+    if(pid==0){
+        execlp("rm","rm","-rf",distr_id,NULL);
+        fprintf(stderr,"eroare exec");
+        exit(-1);
+    }
+    else{
+        wait(NULL);
+    }
 }
